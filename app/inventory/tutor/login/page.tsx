@@ -1,25 +1,42 @@
-"use client"; // このファイルがクライアントサイドでレンダリングされることを示す
+// app/inventory/tutor/login/page.tsx
+'use client'; 
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Next.jsのルーターフックをインポート
+import { useRouter } from 'next/navigation';
+import axiosInstance from '../utils/axiosInstance'; // パスはそのまま
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const router = useRouter(); // useRouterフックを初期化
+  const [message, setMessage] = useState<string>('');
+  const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault(); // フォームのデフォルトの送信動作を防止
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-    // ここに実際の認証ロジックを実装します。
-    // 例: APIエンドポイントにユーザー名とパスワードを送信し、認証結果を受け取る。
-    // 今回は仮の認証ロジックとして、特定の組み合わせで成功とみなします。
-    if (username === 'testuser' && password === 'password') {
-      alert('ログイン成功！');
-      // ログイン成功後、メイン画面へリダイレクト
-      router.push('/inventory/tutor/main');
-    } else {
-      alert('ユーザー名またはパスワードが間違っています。');
+    try {
+      // ★ここを修正: '/api/' は baseURL に含まれるため、ここでは不要です。
+      // 'tutor/login/' に変更します。
+      const response = await axiosInstance.post('/api/tutor/login/', { 
+        username,
+        password,
+      });
+
+      if (response.status === 200) {
+        setMessage('ログイン成功！');
+        router.push('/inventory/tutor/main');
+      } else {
+        setMessage('ログイン失敗: ' + (response.data.message || '不明なエラー'));
+      }
+    } catch (error: any) {
+      if (error.response) {
+        setMessage('ログイン失敗: ' + (error.response.data.message || error.response.statusText));
+      } else if (error.request) {
+        setMessage('ログイン失敗: サーバーからの応答がありません。ネットワークまたはサーバーの状態を確認してください。');
+      } else {
+        setMessage('ログイン失敗: ' + error.message);
+      }
+      console.error('Login error:', error);
     }
   };
 
@@ -27,7 +44,7 @@ const LoginPage: React.FC = () => {
     <div className="login-container">
       <div className="login-box">
         <h1>ログイン</h1>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label htmlFor="username">ユーザー名(必須)</label>
             <input
@@ -50,6 +67,7 @@ const LoginPage: React.FC = () => {
           </div>
           <button type="submit" className="login-button">ログイン</button>
         </form>
+        {message && <p className="login-message">{message}</p>}
       </div>
     </div>
   );

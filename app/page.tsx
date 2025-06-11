@@ -1,6 +1,5 @@
 // app/page.tsx
-// このファイルは、もし /inventory/tutor/main が最初のページなら、
-// ログインページなどに使うか、または空にしておくことができます。
+
 export default function Home() {
   return (
     <div style={{ padding: '50px', textAlign: 'center' }}>

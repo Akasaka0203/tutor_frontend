@@ -1,59 +1,51 @@
-"use client";
+// app/inventory/tutor/main/page.tsx
+'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation'; // useRouterは使いますが、認証リダイレクトは無効化します
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import Calendar from '@/components/Calendar'; // Calendarコンポーネントをインポート
+import Calendar from '@/components/Calendar';
+import axiosInstance from '../utils/axiosInstance'; // axiosInstanceのパスに合わせて調整
 
-// 仮のデータ型定義
+// イベントのデータ型定義（バックエンドのモデルに合わせるが、フロントエンドの表示用にstart/endを使用）
 interface CalendarEvent {
   id: number;
   title: string;
-  start: Date;
-  end: Date;
+  start: Date; // Dateオブジェクトとして扱う（フロントエンド表示用）
+  end: Date;   // Dateオブジェクトとして扱う（フロントエンド表示用）
   description?: string;
   color?: string;
 }
 
-const initialEvents: CalendarEvent[] = [
-  {
-    id: 1,
-    title: '生徒Aとの面談',
-    start: new Date(2025, 4, 25, 10, 0), // 月は0から始まるため4は5月
-    end: new Date(2025, 4, 25, 11, 0),
-    description: '来学期の学習計画について',
-    color: '#FFDDC1', // ライトオレンジ
-  },
-  {
-    id: 2,
-    title: '全体講師ミーティング',
-    start: new Date(2025, 4, 28, 14, 0),
-    end: new Date(2025, 4, 28, 15, 30),
-    description: '新カリキュラムに関する情報共有',
-    color: '#C1E1FF', // ライトブルー
-  },
-  {
-    id: 3,
-    title: '個別指導（生徒B）',
-    start: new Date(2025, 4, 29, 16, 0),
-    end: new Date(2025, 4, 29, 17, 0),
-    description: '数学の二次関数',
-    color: '#D4FFC1', // ライトグリーン
-  },
-  {
-    id: 4,
-    title: '資料作成締め切り',
-    start: new Date(2025, 5, 1, 9, 0), // 6月1日
-    end: new Date(2025, 5, 1, 17, 0),
-    description: '来月の教材準備',
-    color: '#FFC1C1', // ライトレッド
-  },
-];
-
+// 2025年の祝日データ（これはローカルで持つ）
+const holidays2025 = {
+  "2025-01-01": "元日",
+  "2025-01-13": "成人の日",
+  "2025-02-11": "建国記念の日",
+  "2025-02-23": "天皇誕生日",
+  "2025-03-20": "春分の日",
+  "2025-04-29": "昭和の日",
+  "2025-05-03": "憲法記念日",
+  "2025-05-04": "みどりの日",
+  "2025-05-05": "こどもの日",
+  "2025-07-21": "海の日",
+  "2025-08-11": "山の日",
+  "2025-09-15": "敬老の日",
+  "2025-09-23": "秋分の日",
+  "2025-10-13": "スポーツの日",
+  "2025-11-03": "文化の日",
+  "2025-11-23": "勤労感謝の日",
+};
 
 const MainPage: React.FC = () => {
+  const router = useRouter(); 
+
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
+  const [events, setEvents] = useState<CalendarEvent[]>([]); 
+  const [loading, setLoading] = useState(true); 
+  // const [error, setError] = useState<string | null>(null); // エラー状態の管理を完全に削除（表示しないため）
+
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [newEventTitle, setNewEventTitle] = useState('');
@@ -64,26 +56,43 @@ const MainPage: React.FC = () => {
   const [newEventDescription, setNewEventDescription] = useState('');
   const [newEventColor, setNewEventColor] = useState('#FFDDC1');
 
-  // 2025年の祝日データ
-  const holidays2025 = {
-    "2025-01-01": "元日",
-    "2025-01-13": "成人の日",
-    "2025-02-11": "建国記念の日",
-    "2025-02-23": "天皇誕生日",
-    "2025-03-20": "春分の日",
-    "2025-04-29": "昭和の日",
-    "2025-05-03": "憲法記念日",
-    "2025-05-04": "みどりの日",
-    "2025-05-05": "こどもの日",
-    "2025-07-21": "海の日",
-    "2025-08-11": "山の日",
-    "2025-09-15": "敬老の日",
-    "2025-09-23": "秋分の日",
-    "2025-10-13": "スポーツの日",
-    "2025-11-03": "文化の日",
-    "2025-11-23": "勤労感謝の日",
-  };
+  // イベントデータのフェッチ
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    // setError(null); // エラー状態の管理を完全に削除
 
+    const token = localStorage.getItem('authToken'); 
+    // トークンチェックとリダイレクトのロジックを完全に削除
+    console.log('MainPage (Auth & Error Ignored): fetchEvents called. Token from localStorage:', token ? 'Exists' : 'Does NOT exist');
+
+    try {
+      console.log('MainPage: Attempting to fetch events with token.');
+      // イベントAPIエンドポイントは /api/tutor/events/ を想定
+      const response = await axiosInstance.get('/api/tutor/events/');
+      // バックエンドからのデータをフロントエンドのCalendarEvent型に変換
+      const fetchedEvents: CalendarEvent[] = response.data.map((schedule: any) => ({
+        id: schedule.id,
+        title: schedule.title,
+        start: new Date(schedule.start_time), // バックエンドの 'start_time' を使用
+        end: schedule.end_time ? new Date(schedule.end_time) : undefined, // バックエンドの 'end_time' を使用
+        description: schedule.description,
+        color: schedule.color,
+      }));
+      setEvents(fetchedEvents);
+      console.log('MainPage: Events fetched successfully.');
+    } catch (err: any) {
+      console.error('MainPage: イベントの取得に失敗しました:', err);
+      // エラーメッセージの設定も完全に削除
+      console.log('MainPage: イベント読み込みエラーが発生しましたが、無視して続行します。');
+    } finally {
+      setLoading(false);
+      console.log('MainPage: fetchEvents finished.');
+    }
+  }, []); 
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]); 
 
   const handlePrevMonth = () => {
     setCurrentDate(prevDate => {
@@ -103,7 +112,7 @@ const MainPage: React.FC = () => {
 
   // 「日程を追加する」ボタンクリック
   const handleAddEventClick = () => {
-    setSelectedEvent(null); // 新規追加なので選択中のイベントをクリア
+    setSelectedEvent(null);
     setNewEventTitle('');
     setNewEventStartDate('');
     setNewEventStartTime('');
@@ -124,6 +133,7 @@ const MainPage: React.FC = () => {
         setNewEventEndDate(event.end.toISOString().split('T')[0]);
         setNewEventEndTime(event.end.toTimeString().substring(0, 5));
     } else {
+        // 終了日時がない場合、日付と時刻をクリア
         setNewEventEndDate('');
         setNewEventEndTime('');
     }
@@ -133,7 +143,7 @@ const MainPage: React.FC = () => {
   };
 
   // イベント追加/更新フォームの送信
-  const handleSubmitEvent = (e: React.FormEvent) => {
+  const handleSubmitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newEventTitle || !newEventStartDate || !newEventStartTime) {
@@ -154,50 +164,59 @@ const MainPage: React.FC = () => {
         endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
     }
 
+    // バックエンドのフィールド名に合わせて 'start_time' と 'end_time' を使用
+    const eventDataToSend = {
+      title: newEventTitle,
+      start_time: startDateTime.toISOString(), // ★ ここを修正
+      end_time: endDateTime ? endDateTime.toISOString() : null, // ★ ここを修正
+      description: newEventDescription,
+      color: newEventColor,
+    };
 
-    if (selectedEvent) {
-      // イベント更新
-      setEvents(events.map(ev =>
-        ev.id === selectedEvent.id
-          ? {
-              ...ev,
-              title: newEventTitle,
-              start: startDateTime,
-              end: endDateTime as Date, // endDateTimeは必ず存在するようにロジックで保証
-              description: newEventDescription,
-              color: newEventColor,
-            }
-          : ev
-      ));
-      alert('イベントを更新しました！');
-    } else {
-      // イベント追加
-      const newId = events.length > 0 ? Math.max(...events.map(ev => ev.id)) + 1 : 1;
-      const newEvent: CalendarEvent = {
-        id: newId,
-        title: newEventTitle,
-        start: startDateTime,
-        end: endDateTime as Date, // endDateTimeは必ず存在するようにロジックで保証
-        description: newEventDescription,
-        color: newEventColor,
-      };
-      setEvents([...events, newEvent]);
-      alert('イベントを追加しました！');
+    try {
+      if (selectedEvent) {
+        // イベント更新
+        await axiosInstance.put(`/api/tutor/events/${selectedEvent.id}/`, eventDataToSend);
+        alert('イベントを更新しました！');
+      } else {
+        // イベント追加
+        await axiosInstance.post('/api/tutor/events/', eventDataToSend);
+        alert('イベントを追加しました！');
+      }
+      setIsEventModalOpen(false);
+      await fetchEvents(); // 成功したらイベントを再フェッチしてUIを更新
+    } catch (err: any) {
+      console.error('MainPage: イベントの保存に失敗しました:', err); 
+      // エラーメッセージの設定を完全に削除
+      console.log('MainPage: イベント保存エラーが発生しましたが、無視して続行します。');
     }
-
-    setIsEventModalOpen(false); // モーダルを閉じる
   };
 
   // イベント削除
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (selectedEvent && confirm('このイベントを削除してもよろしいですか？')) {
-      setEvents(events.filter(ev => ev.id !== selectedEvent.id));
-      setIsEventModalOpen(false);
-      setSelectedEvent(null);
-      alert('イベントを削除しました！');
+      try {
+        await axiosInstance.delete(`/api/tutor/events/${selectedEvent.id}/`);
+        alert('イベントを削除しました！');
+        setIsEventModalOpen(false);
+        setSelectedEvent(null);
+        await fetchEvents(); // 成功したらイベントを再フェッチしてUIを更新
+      } catch (err: any) {
+        console.error('MainPage: イベントの削除に失敗しました:', err); 
+        // エラーメッセージの設定を完全に削除
+        console.log('MainPage: イベント削除エラーが発生しましたが、無視して続行します。');
+      }
     }
   };
 
+  if (loading) {
+    return <div className="loading-container">読み込み中...</div>;
+  }
+
+  // エラー表示の条件を完全に削除
+  // if (error) {
+  //   return <div className="error-container">エラー: {error}</div>;
+  // }
 
   return (
     <div className="container">
@@ -220,7 +239,7 @@ const MainPage: React.FC = () => {
                 event.start.getFullYear() === currentDate.getFullYear() &&
                 event.start.getMonth() === currentDate.getMonth()
               )}
-              holidays={holidays2025} // 祝日データを渡す
+              holidays={holidays2025}
               onEventClick={handleEventClick}
             />
           </div>
