@@ -1,20 +1,20 @@
 /* グローバルなスタイル */
 body {
-    margin: 0;
+    margin: 0;/*ページの端から余白をなくします*/
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+        sans-serif; /*テキストのフォント（書体）を設定*/
+    -webkit-font-smoothing: antialiased;/* フォントを滑らかにする */
+    -moz-osx-font-smoothing: grayscale;/* フォントを滑らかにする */
     background-color: #f0f2f5; /* 全体の背景色 */
 }
 
-a {
+a {/*リンクに関する設定*/
     color: inherit;
     text-decoration: none;
 }
 
-* {
+* {/*すべての要素のボックスモデルを「border-box」に設定*/
     box-sizing: border-box;
 }
 
@@ -44,7 +44,7 @@ a {
 .header {
     background-color: #ffffff;
     padding: 15px 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);/*ヘッダーの下に影をつけ、浮き上がっているように見せる*/
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -278,8 +278,8 @@ a {
     transition: background-color 0.3s ease;
 }
 
-.homework-actions button.edit-btn { /* 新しいクラス名で詳細ボタンの色を明確に */
-    display: none; /* ← ここに 'display: none;' を追加しました */
+.homework-actions button.edit-btn { 
+    display: none; 
     background-color: #3498db;
 }
 
@@ -409,8 +409,8 @@ a {
     font-weight: bold;
     color: white;
     white-space: nowrap; /* テキストが折り返さないように */
-    line-height: 1; /* ★追加: テキストの行の高さを明示的に設定して垂直方向の揃えを改善 */
-    vertical-align: middle; /* ★追加: 他のinline要素との垂直方向の揃えを調整 */
+    line-height: 1; /* テキストの行の高さを明示的に設定して垂直方向を揃える */
+    vertical-align: middle; /* 他のinline要素との垂直方向の揃える */
 }
 
 .question-status-detail { /* 詳細ページ用 */
@@ -439,9 +439,8 @@ a {
 
 
 /* 質問投稿モーダル (不要になる可能性あり、フォームが直接表示されるため) */
-/* 今回は新しい質問フォームが直接表示されるため、Modal関連のスタイルは実質不要ですが、
-    もし再利用する予定がある場合は残しておいても構いません。
-    ただし、現時点での機能で使わない場合は削除してもOKです。 */
+/* 今回は新しい質問フォームが直接表示されるため、Modal関連のスタイルは実質不要
+    ただし、現時点での機能で使わない場合は削除 */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -452,7 +451,7 @@ a {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* 他の要素の上に表示 */
+    z-index: 1000; 
 }
 
 .modal-content {
@@ -838,8 +837,8 @@ a {
 }
 
 /* 質問一覧ページの削除ボタンのスタイル */
-.delete-question-btn { /* 新しく追加 */
-    display: none; /* ← ここを変更しました */
+.delete-question-btn { 
+    display: none; 
     background-color: #e74c3c;
     color: white;
     border: none;
@@ -852,8 +851,8 @@ a {
     transition: background-color 0.3s ease;
     margin-left: 10px; /* question-item-linkとの間隔 */
     flex-shrink: 0; /* 縮まないようにする */
-    line-height: 1; /* ★追加: テキストの行の高さを明示的に設定して垂直方向の揃えを改善 */
-    vertical-align: middle; /* ★追加: 他のinline要素との垂直方向の揃えを調整 */
+    line-height: 1; /* テキストの行の高さを明示的に設定して垂直方向の揃える */
+    vertical-align: middle; /* 他のinline要素との垂直方向の揃える */
 }
 
 .delete-question-btn:hover {
@@ -1377,10 +1376,6 @@ a {
     background-color: #27ae60;
 }
 
-/* 既存の .input-group, input[type="text"], textarea, radio button スタイルは流用されます */
-/* 選択肢の入力グループは既存の .choice-input-group が適用されますが、微調整が必要かもしれません */
-
-/* ラジオボタンの調整 (もし必要であれば) */
 .question-item-form .input-group > div > label {
     margin-right: 25px; /* ラジオボタン間のスペースを少し広げる */
 }
