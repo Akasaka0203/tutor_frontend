@@ -68,7 +68,7 @@ const MainPage: React.FC = () => {
     try {
       console.log('MainPage: Attempting to fetch events with token.');
       // イベントAPIエンドポイントは /api/tutor/events/ を想定
-      const response = await axiosInstance.get('/api/tutor/events/');
+      const response = await axiosInstance.get('/api/tutor/lesson-schedules/');
       // バックエンドからのデータをフロントエンドのCalendarEvent型に変換
       const fetchedEvents: CalendarEvent[] = response.data.map((schedule: any) => ({
         id: schedule.id,
@@ -176,11 +176,11 @@ const MainPage: React.FC = () => {
     try {
       if (selectedEvent) {
         // イベント更新
-        await axiosInstance.put(`/api/tutor/events/${selectedEvent.id}/`, eventDataToSend);
+        await axiosInstance.put(`/api/tutor/lesson-schedules/${selectedEvent.id}/`, eventDataToSend);
         alert('イベントを更新しました！');
       } else {
         // イベント追加
-        await axiosInstance.post('/api/tutor/events/', eventDataToSend);
+        await axiosInstance.post('/api/tutor/lesson-schedules/', eventDataToSend);
         alert('イベントを追加しました！');
       }
       setIsEventModalOpen(false);
@@ -196,7 +196,7 @@ const MainPage: React.FC = () => {
   const handleDeleteEvent = async () => {
     if (selectedEvent && confirm('このイベントを削除してもよろしいですか？')) {
       try {
-        await axiosInstance.delete(`/api/tutor/events/${selectedEvent.id}/`);
+        await axiosInstance.delete(`/api/tutor/lesson-schedules/${selectedEvent.id}/`);
         alert('イベントを削除しました！');
         setIsEventModalOpen(false);
         setSelectedEvent(null);

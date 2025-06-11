@@ -1,40 +1,68 @@
+// frontend/app/inventory/tutor/homework/page.tsx
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Linkコンポーネントをインポート
+import Link from 'next/link';
+import apiClient from '../utils/apiClient'; // APIクライアントをインポート
 
-// 仮の課題データ型
-// 課題詳細ページと合わせるため、questionsとattachmentNameを追加（実際のデータは未定義でもOK）
+// バックエンドのHomeworkモデルに合わせたデータ型
 interface Homework {
   id: number;
   title: string;
-  dueDate: string;
-  status: '未提出' | '提出済み' | '完了';
-  questions?: any[]; // 詳細画面で使うので、ここにも型定義を追加
-  attachmentName?: string;
+  due_date: string; // dueDate を due_date に変更
+  status: 'pending' | 'submitted' | 'completed'; // ステータスをバックエンドの値に合わせる
+  tutor: number; // 講師のID
+  attachment?: string | null; // 添付ファイルのURLまたはパス
+  attachment_name?: string | null; // 添付ファイル名
+  created_at: string;
+  updated_at: string;
+  questions?: any[]; // 課題作成時に使用されるが、リスト表示では必須ではない
 }
-
-const initialHomeworks: Homework[] = [
-  { id: 1, title: '数学I 課題1', dueDate: '2025-05-30', status: '未提出' },
-  { id: 2, title: '英語リーディング レポート', dueDate: '2025-06-05', status: '提出済み' },
-  { id: 3, title: '物理基礎 実験レポート', dueDate: '2025-05-20', status: '完了' },
-];
 
 const HomeworkPage: React.FC = () => {
   const router = useRouter();
-  const [homeworks, setHomeworks] = useState<Homework[]>(initialHomeworks);
+  const [homeworks, setHomeworks] = useState<Homework[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // コンポーネントマウント時に課題データをフェッチ
+  useEffect(() => {
+    const fetchHomeworks = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await apiClient.get('/api/tutor/homeworks/'); // APIエンドポイントのURL
+        setHomeworks(response.data);
+      } catch (err) {
+        console.error('課題の取得中にエラーが発生しました:', err);
+        setError('課題の読み込みに失敗しました。');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeworks();
+  }, []); // 空の依存配列で初回マウント時のみ実行
 
   const handleCreateHomework = () => {
     router.push('/inventory/tutor/homework/create');
   };
 
-  const handleDeleteHomework = (id: number) => {
+  const handleDeleteHomework = async (id: number) => {
     if (confirm('この課題を削除してもよろしいですか？')) {
-      setHomeworks(homeworks.filter(homework => homework.id !== id));
-      alert('課題を削除しました！');
+      try {
+        await apiClient.delete(`/api/tutor/homeworks/${id}/`); // APIエンドポイントのURL
+        setHomeworks(prevHomeworks => prevHomeworks.filter(homework => homework.id !== id));
+        alert('課題を削除しました！');
+      } catch (err) {
+        console.error(`課題ID: ${id} の削除中にエラーが発生しました:`, err);
+        alert('課題の削除に失敗しました。');
+        setError('課題の削除に失敗しました。');
+      }
     }
   };
 
@@ -44,6 +72,48 @@ const HomeworkPage: React.FC = () => {
   const handleEditHomework = (id: number) => {
     alert(`課題ID: ${id} を編集します（この機能はまだ実装されていません）。`);
   };
+
+  // ステータス表示を日本語に変換するヘルパー関数
+  const getStatusDisplayName = (status: Homework['status']): string => {
+    switch (status) {
+      case 'pending':
+        return '未提出';
+      case 'submitted':
+        return '提出済み';
+      case 'completed':
+        return '完了';
+      default:
+        return '不明';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container">
+        <Header />
+        <div className="main-content">
+          <Sidebar />
+          <main className="content-area">
+            <p>課題を読み込み中...</p>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container">
+        <Header />
+        <div className="main-content">
+          <Sidebar />
+          <main className="content-area">
+            <p className="error-message">{error}</p>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -65,18 +135,15 @@ const HomeworkPage: React.FC = () => {
                   {homeworks.map(homework => (
                     <li key={homework.id} className="homework-item">
                       {/* Linkコンポーネントで課題詳細ページへのリンクを設定 */}
-                      {/* homework-item-content を追加して、リンクの内部をスタイルする */}
                       <Link href={`/inventory/tutor/homework/${homework.id}`} className="homework-item-link">
-                        <div className="homework-item-content"> {/* このdivを追加または確認 */}
+                        <div className="homework-item-content">
                           <h3>{homework.title}</h3>
                           <p className="homework-meta">
-                            提出期限: {homework.dueDate} | ステータス: {homework.status}
+                            提出期限: {homework.due_date} | ステータス: {getStatusDisplayName(homework.status)}
                           </p>
                         </div>
                       </Link>
                       <div className="homework-actions">
-                        {/* 編集ボタンを完全に削除しました */}
-                        {/* <button onClick={() => handleEditHomework(homework.id)}>編集</button> */}
                         <button className="delete-btn" onClick={() => handleDeleteHomework(homework.id)}>削除</button>
                       </div>
                     </li>
