@@ -1,15 +1,19 @@
+// frontend/app/inventory/tutor/homework/create/page.tsx
+
 "use client";
 
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useRouter } from 'next/navigation';
+// import apiClient from '@/utils/apiClient'; 
+import apiClient from '../../utils/apiClient'; // 相対パスに修正済みの場合、こちらを使用
 
 // 問題の型定義
 interface Question {
   id: number;
   type: 'text' | 'choice'; // 'text' for free text, 'choice' for multiple choice
-  questionText: string; // 問題文
+  questionText: string; // 問題文 (フロントエンド用)
   choices?: string[]; // 選択肢の場合のみ
 }
 
@@ -94,8 +98,11 @@ const CreateHomeworkPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // handleSubmit 関数を async に変更し、API呼び出しロジックを追加
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('handleSubmit called'); // デバッグ用
+
     if (!homeworkTitle || !homeworkDueDate) {
       alert('課題名と期限は必須です。');
       return;
@@ -115,17 +122,56 @@ const CreateHomeworkPage: React.FC = () => {
       }
     }
 
+    // バックエンドのシリアライザーのフィールド名に合わせる
+    const formattedQuestions = questions.map(q => ({
+      question_text: q.questionText, // フロントエンドの questionText を バックエンドの question_text にマッピング
+      question_type: q.type,         // フロントエンドの type を バックエンドの question_type にマッピング
+      choices: q.choices && q.choices.length > 0 ? q.choices : null, // 選択肢がない場合はnullにする
+    }));
 
-    // ここで課題データをAPIに送信するなどの処理を行います
-    console.log('課題名:', homeworkTitle);
-    console.log('期限:', homeworkDueDate);
-    console.log('問題リスト:', questions);
-    console.log('添付ファイル:', attachment ? attachment.name : 'なし');
+    // FormData を使用して、ファイルとJSONデータを送信
+    const formData = new FormData();
+    formData.append('title', homeworkTitle);
+    formData.append('due_date', homeworkDueDate);
+    formData.append('status', 'pending'); // 初期ステータスを設定 (バックエンドのデフォルトと一致)
+    formData.append('questions', JSON.stringify(formattedQuestions)); // 問題リストをJSON文字列として追加
 
-    alert('課題を登録しました！');
+    if (attachment) {
+      formData.append('attachment', attachment); // ファイルがあれば追加
+    }
 
-    // 登録後、課題管理画面に戻る
-    router.push('/inventory/tutor/homework');
+    // デバッグ用: FormData の内容をコンソールに出力
+    // FormData は直接ログ出力すると中身が見えないため、以下のようにイテレートします。
+    for (let pair of formData.entries()) {
+        console.log(pair[0]+ ': ' + pair[1]);
+    }
+
+    try {
+      // APIクライアントで POST リクエストを送信
+      const response = await apiClient.post('/api/tutor/homeworks/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data', // FormData を送る際は必須
+        },
+      });
+
+      console.log('課題登録成功:', response.data);
+      alert('課題を登録しました！');
+
+      // 登録後、課題管理画面に戻る
+      router.push('/inventory/tutor/homework');
+      router.refresh(); // 課題管理画面のデータを再フェッチして更新
+
+    } catch (error: any) {
+      console.error('課題の登録に失敗しました:', error);
+      if (error.response) {
+        // バックエンドからのエラーレスポンスがある場合
+        console.error('APIレスポンスエラー:', error.response.data);
+        alert(`課題の登録に失敗しました: ${JSON.stringify(error.response.data)}`);
+      } else {
+        // ネットワークエラーなど
+        alert('課題の登録に失敗しました。ネットワーク接続を確認してください。');
+      }
+    }
   };
 
   return (
